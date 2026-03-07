@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@theme {
+  --spacing: 0.25rem;
+
+  /* Nexus background scale */
+  --color-nexus-900: rgb(var(--nexus-900));
+  --color-nexus-800: rgb(var(--nexus-800));
+  --color-nexus-700: rgb(var(--nexus-700));
+  --color-nexus-600: rgb(var(--nexus-600));
+  --color-nexus-500: rgb(var(--nexus-500));
+
+  /* Accent */
+  --color-accent:       rgb(var(--accent));
+  --color-accent-light: rgb(var(--accent-light));
+  --color-accent-dark:  rgb(var(--accent-dark));
+  --color-accent-glow:  color-mix(in srgb, rgb(var(--accent)) 30%, transparent);
+
+  /* Surface overlays */
+  --color-surface:        rgba(255 255 255 / 0.03);
+  --color-surface-hover:  rgba(255 255 255 / 0.06);
+  --color-surface-border: rgba(255 255 255 / 0.08);
+
+  /* Text */
+  --color-text-primary:   #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted:     #64748b;
+
+  /* Font families */
+  --font-sans:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-glow:       0 0 40px rgba(99, 102, 241, 0.15);
+  --shadow-card:       0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+  /* Animations */
+  --animate-fade-in:    fadeIn 0.5s ease-out;
+  --animate-slide-up:   slideUp 0.5s ease-out;
+  --animate-pulse-slow: pulse 3s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ---- Default theme: Indigo ------------------------------------------
+   Override these CSS vars to change the color scheme.
+   Example themes:
+     Purple:  --accent: 168 85 247; --accent-light: 192 132 252; --accent-dark: 147 51 234;
+     Emerald: --accent: 16 185 129; --accent-light: 52 211 153;  --accent-dark: 5 150 105;
+     Rose:    --accent: 244 63 94;  --accent-light: 251 113 133; --accent-dark: 225 29 72;
+--------------------------------------------------------------------- */
+:root {
+  --nexus-900: 10 10 15;
+  --nexus-800: 18 18 26;
+  --nexus-700: 26 26 36;
+  --nexus-600: 36 36 48;
+  --nexus-500: 46 46 61;
+  --accent:       99 102 241;
+  --accent-light: 129 140 248;
+  --accent-dark:  79 70 229;
+}
+
+/* Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: rgb(var(--nexus-900));
+  color: #f8fafc;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgb(var(--nexus-800)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--nexus-500)); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--accent)); }
+
+/* Glass utility */
+@utility bg-glass {
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+}
+
+/* Card 3D */
+.card-3d {
+  background: linear-gradient(145deg, rgb(var(--nexus-800)) 0%, rgb(var(--nexus-900)) 100%);
+  border: 1px solid rgb(var(--accent-light) / 0.15) !important;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.4),
+    0 8px 24px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-3d::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgb(var(--accent-light) / 0.3) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}

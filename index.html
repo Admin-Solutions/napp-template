@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="/" />
+    <meta charset="utf-8" />
+    <title>Napp Template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="robots" content="index">
+    <meta property="og:type" content="article" />
+    <meta property="og:image:width" content="" />
+    <meta property="og:image:height" content="" />
+    <meta property="og:locale" content="en" />
+    <meta property="og:image:alt" content="Wallet Image" />
+    <meta name="theme-color" content="#000000" />
+    <meta pagemonkeycode="pagemonkeycode-code" content="">
+    <meta property="og:title" content="Napp Template" />
+    <meta property="og:url" content="" />
+    <meta property="og:image" content="" />
+    <meta property="og:description" content="" />
+    <meta property="tokenid" content="" />
+    <meta name="apple-mobile-web-app-title" content="Napp Template">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Preconnect & DNS Prefetch for faster loading -->
+    <link rel="preconnect" href="https://image.admin.solutions" crossorigin />
+    <link rel="preconnect" href="https://seemynft.page" crossorigin />
+    <link rel="preconnect" href="https://website.admin.solutions" crossorigin />
+    <link rel="dns-prefetch" href="https://image.admin.solutions" />
+    <link rel="dns-prefetch" href="https://seemynft.page" />
+    <link rel="dns-prefetch" href="https://website.admin.solutions" />
+    <!-- iOS Splash Screens -->
+    <link rel="apple-touch-startup-image" href="https://image.admin.solutions/seemynft-512x512/141f6617-6095-43ee-bd53-44124cd7909e/b73c49c2-f723-454f-af07-9743478fc67f/d1f73190-58ff-4554-9f4c-72a57912e823">
+    <link rel="preconnect" href="https://image.admin.solutions/" crossorigin />
+    <link rel="icon" type="image/png" href="https://image.admin.solutions/seemynft-192x192/141f6617-6095-43ee-bd53-44124cd7909e/b73c49c2-f723-454f-af07-9743478fc67f/64059630-8cc6-43e6-bc9d-697c472bede7" />
+    <link rel="apple-touch-icon" href="https://image.admin.solutions/seemynft-192x192/141f6617-6095-43ee-bd53-44124cd7909e/b73c49c2-f723-454f-af07-9743478fc67f/64059630-8cc6-43e6-bc9d-697c472bede7" />
+    <link rel="manifest" id="dynamic-manifest">
+</head>
+<body>
+
+    <div id="root"></div>
+    <footer id="main_footer"></footer>
+
+    <script type="text/javascript" src="https://seemynft.page/js/site.js"></script>
+
+    <!-- SERVER_BOOTSTRAP_INJECTION_POINT: Server replaces this comment with window.__BOOTSTRAP__ script -->
+
+    <script>
+        (function() {
+          var b = window.__BOOTSTRAP__ || {};
+          window.appContext = {
+            walletLoggedIn: (b.WALLET_LOGGED_INTO || '').toLowerCase() || 'anon',
+            walletBeingViewed: (b.WALLET_BEING_VIEWED || b.WALLET_OWNER_GUID || '').toLowerCase() || 'none',
+            tokenBeingViewed: (document.querySelector('meta[property="tokenid"]')?.content || '').toLowerCase() || 'none',
+            wtob: (b.WTOB_GUID || b.WALLET_BEING_VIEWED_WTOB_GUID || '').toLowerCase() || 'none',
+            ownershipType: (b.HOW_OWNED || b.WALLET_BEING_VIEWED_CUSTODY_TYPE || '').toLowerCase() || 'none'
+          };
+
+          window.dbReady = new Promise(function(resolve, reject) {
+            var request = indexedDB.open('SeemyNFT', 1);
+            request.onupgradeneeded = function(e) {
+              var db = e.target.result;
+              if (!db.objectStoreNames.contains('api')) {
+                var store = db.createObjectStore('api', {
+                  keyPath: [
+                    'groupName',
+                    'valueType',
+                    'walletLoggedIn',
+                    'walletBeingViewed',
+                    'tokenBeingViewed',
+                    'wtob',
+                    'ownershipType'
+                  ]
+                });
+                store.createIndex('by_groupName', 'groupName');
+              }
+            };
+            request.onsuccess = function(e) { resolve(e.target.result); };
+            request.onerror = function(e) { reject(e.target.error); };
+          });
+
+          window.apiCache = {
+            get: function(groupName, valueType) {
+              var ctx = window.appContext;
+              return window.dbReady.then(function(db) {
+                return new Promise(function(resolve, reject) {
+                  var tx = db.transaction(['api'], 'readonly');
+                  var req = tx.objectStore('api').get([
+                    (groupName || '').toLowerCase(),
+                    (valueType || '').toLowerCase(),
+                    ctx.walletLoggedIn,
+                    ctx.walletBeingViewed,
+                    ctx.tokenBeingViewed,
+                    ctx.wtob,
+                    ctx.ownershipType
+                  ]);
+                  req.onsuccess = function() { resolve(req.result); };
+                  req.onerror = function() { reject(req.error); };
+                });
+              });
+            },
+            put: function(actionValue) {
+              var ctx = window.appContext;
+              return window.dbReady.then(function(db) {
+                return new Promise(function(resolve, reject) {
+                  var tx = db.transaction(['api'], 'readwrite');
+                  var record = {};
+                  for (var key in actionValue) {
+                    record[key] = actionValue[key];
+                  }
+                  record.groupName = (actionValue.groupName || '').toLowerCase();
+                  record.valueType = (actionValue.valueType || '').toLowerCase();
+                  record.walletLoggedIn = ctx.walletLoggedIn;
+                  record.walletBeingViewed = ctx.walletBeingViewed;
+                  record.tokenBeingViewed = ctx.tokenBeingViewed;
+                  record.wtob = ctx.wtob;
+                  record.ownershipType = ctx.ownershipType;
+                  record.cachedAt = Date.now();
+                  var req = tx.objectStore('api').put(record);
+                  req.onsuccess = function() { resolve(req.result); };
+                  req.onerror = function() { reject(req.error); };
+                });
+              });
+            },
+            invalidateGroup: function(groupName) {
+              return window.dbReady.then(function(db) {
+                return new Promise(function(resolve) {
+                  var tx = db.transaction(['api'], 'readwrite');
+                  var index = tx.objectStore('api').index('by_groupName');
+                  index.openCursor((groupName || '').toLowerCase()).onsuccess = function(e) {
+                    var cursor = e.target.result;
+                    if (cursor) {
+                      cursor.delete();
+                      cursor.continue();
+                    } else {
+                      resolve();
+                    }
+                  };
+                });
+              });
+            },
+            getAll: function() {
+              return window.dbReady.then(function(db) {
+                return new Promise(function(resolve, reject) {
+                  var tx = db.transaction(['api'], 'readonly');
+                  var req = tx.objectStore('api').getAll();
+                  req.onsuccess = function() { resolve(req.result); };
+                  req.onerror = function() { reject(req.error); };
+                });
+              });
+            },
+            find: function(filterFn) {
+              return this.getAll().then(function(all) {
+                return all.filter(filterFn);
+              });
+            },
+            clear: function() {
+              return window.dbReady.then(function(db) {
+                return new Promise(function(resolve, reject) {
+                  var tx = db.transaction(['api'], 'readwrite');
+                  var req = tx.objectStore('api').clear();
+                  req.onsuccess = function() { resolve(); };
+                  req.onerror = function() { reject(req.error); };
+                });
+              });
+            }
+          };
+        })();
+    </script>
+
+    <script type="module" src="/src/main.jsx"></script>
+
+</body>
+</html>
