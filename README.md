@@ -30,9 +30,11 @@ This project uses two shared packages from sibling repos.
 
 ### 1. seemynft-dev-proxy
 
-Install (adjust relative path if needed):
+Install:
 
 ```bash
+npm install github:Admin-Solutions/seemynft-dev-proxy --save-dev
+# or use the local sibling repo during development:
 npm install "file:../seemynft-dev-proxy" --save-dev
 ```
 
@@ -77,7 +79,13 @@ What it provides automatically (dev only, no-op in prod builds):
 
 `LazyAuth.jsx` is copied directly into the repo. Do not modify the CDN URL pattern — the `Math.random()` slug is intentional cache-busting.
 
-In dev, `auth.js` is served from `/public/auth.js` (the built IIFE bundle from the `seemynft-auth` repo). In production the bundle loads from the CDN.
+In dev, `auth.js` is served from `/public/auth.js` (the built IIFE bundle from the `seemynft-auth` repo). Copy it once before running the dev server:
+
+```bash
+cp ../seemynft-auth/dist/auth.js public/auth.js
+```
+
+`public/auth.js` is gitignored — it's a build artifact. In production the bundle loads from the CDN.
 
 Three mount functions are available:
 
@@ -93,10 +101,100 @@ await mountLogout(containerEl, { onSuccess: () => window.location.reload() })
 // Show switch-accounts modal (refresh bootstrap before reload in dev)
 await mountSwitchAccounts(el, {
   onBeforeReload: import.meta.env.DEV
-    ? async () => { await fetch('/__dev/refresh-bootstrap', { method: 'POST' }).catch(() => {}) }
+    ? async (walletGUID) => {
+        const url = walletGUID
+          ? `/__dev/refresh-bootstrap?walletGuid=${walletGUID}`
+          : '/__dev/refresh-bootstrap'
+        await fetch(url, { method: 'POST' }).catch(() => {})
+      }
     : undefined,
   onClose: () => { /* unmount */ },
 })
+```
+
+## Auth UI
+
+Read auth state from `window.__BOOTSTRAP__`:
+
+```js
+const b = window.__BOOTSTRAP__ || {}
+const isAuthed = b.IS_AUTHORIZED_USER === true || b.IS_AUTHORIZED_USER === 'true'
+const walletName = b.WALLET_LOGGED_INTO_USER_NAME || b.WALLET_NAME_USER || ''
+```
+
+Wire up handlers (see `src/App.jsx` for full working example with icons):
+
+```js
+function mountInBody() {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const onClose = () => { try { document.body.removeChild(container) } catch (_) {} }
+  return { container, onClose }
+}
+
+async function handleLogin() {
+  const { container, onClose } = mountInBody()
+  await mountAuth(container, {
+    onSuccess: async () => {
+      if (import.meta.env.DEV) {
+        await fetch('/__dev/refresh-bootstrap', { method: 'POST' }).catch(() => {})
+      }
+      window.location.reload()
+    },
+    onClose,
+  })
+}
+
+async function handleLogout() {
+  const { container, onClose } = mountInBody()
+  await mountLogout(container, { onSuccess: () => window.location.reload(), onClose })
+}
+
+async function handleSwitch() {
+  const { container, onClose } = mountInBody()
+  await mountSwitchAccounts(container, {
+    onBeforeReload: import.meta.env.DEV
+      ? async (walletGUID) => {
+          const url = walletGUID
+            ? `/__dev/refresh-bootstrap?walletGuid=${walletGUID}`
+            : '/__dev/refresh-bootstrap'
+          await fetch(url, { method: 'POST' }).catch(() => {})
+        }
+      : undefined,
+    onClose,
+  })
+}
+```
+
+Render login or logout/switch buttons based on auth state:
+
+```jsx
+{isAuthed ? (
+  <>
+    {walletName && (
+      <span className="text-xs font-mono px-3 py-1.5 rounded-lg"
+        style={{ background: '#0f0f1a', border: '1px solid #1e1e30' }}>
+        {walletName}
+      </span>
+    )}
+    <button onClick={handleSwitch}
+      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white"
+      style={{ background: '#1a1a28', border: '1px solid #2a2a3a' }}>
+      Switch
+    </button>
+    <button onClick={handleLogout}
+      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300"
+      style={{ background: '#ff000010', border: '1px solid #ff000030' }}>
+      Logout
+    </button>
+  </>
+) : (
+  <button onClick={handleLogin}
+    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-300 hover:text-white"
+    style={{ background: '#6366f120', border: '1px solid #6366f140' }}>
+    Login
+  </button>
+)}
 ```
 
 ## Project structure
