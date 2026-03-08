@@ -9,9 +9,7 @@ Starter template for building NAPPs (NFT Application Pages) on the Admin Solutio
 - **Lucide React** — icon library
 - **seemynft-auth lazy load** — login, logout, and switch-accounts modals loaded on demand
 - **LoginGate** — auth guard that blocks the app until the user is authenticated
-- **Dev bootstrap proxy** — auto-fetches `window.__BOOTSTRAP__` (PMC, JWT, wallet info) from production so you never copy credentials manually
-- **Cookie proxy** — forwards session cookies to `/api` requests so the dev server behaves like production
-- **`/__dev/login`** — built-in login page for the dev server
+- **seemynft-dev-proxy** — shared Vite plugin that handles dev bootstrap, cookie proxying, and auth dev endpoints
 
 ## Quick start
 
@@ -25,6 +23,81 @@ npm run dev
 ```
 
 If you are not already logged in, navigate to `/__dev/login` in the browser.
+
+## Shared dev infrastructure
+
+This project uses two shared packages from sibling repos.
+
+### 1. seemynft-dev-proxy
+
+Install (adjust relative path if needed):
+
+```bash
+npm install "file:../seemynft-dev-proxy" --save-dev
+```
+
+In `vite.config.js`, the plugin is wired up like this:
+
+```js
+import { defineConfig, loadEnv } from 'vite'
+import { seemynftDevProxy } from 'seemynft-dev-proxy'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd())
+  return {
+    plugins: [
+      // ...your other plugins (tailwindcss, react, etc.)
+      mode === 'development' && seemynftDevProxy({
+        guid: env.VITE_TOKEN_GUID,   // or VITE_WALLET_GUID — whatever env var holds the GUID
+        type: 'token',               // 'token' (mytoken/{guid}) or 'wallet' (/{guid})
+      }),
+    ].filter(Boolean),
+    server: {
+      port: 5173,
+      open: env.VITE_TOKEN_GUID ? `/mytoken/${env.VITE_TOKEN_GUID}` : true,
+    },
+  }
+})
+```
+
+What it provides automatically (dev only, no-op in prod builds):
+
+- Proxies `/api/*` → `https://seemynft.page/api/*` with session cookies forwarded
+- Fetches `window.__BOOTSTRAP__` from the production page and injects it into `index.html`
+- Refreshes `pmc_cookie` whenever `WalletAuthCookie` changes (fixes account switching)
+- Dev endpoints: `/__dev/login`, `/__dev/refresh-bootstrap`, `/__dev/linked-accounts`
+
+`index.html` must have this comment where the bootstrap should be injected:
+
+```html
+<!-- SERVER_BOOTSTRAP_INJECTION_POINT: Server replaces this comment with window.__BOOTSTRAP__ script -->
+```
+
+### 2. Auth bundle — `src/LazyAuth.jsx`
+
+`LazyAuth.jsx` is copied directly into the repo. Do not modify the CDN URL pattern — the `Math.random()` slug is intentional cache-busting.
+
+In dev, `auth.js` is served from `/public/auth.js` (the built IIFE bundle from the `seemynft-auth` repo). In production the bundle loads from the CDN.
+
+Three mount functions are available:
+
+```js
+import { mountAuth, mountLogout, mountSwitchAccounts } from './LazyAuth'
+
+// Show login modal
+await mountAuth(containerEl, { onSuccess: () => window.location.reload() })
+
+// Show logout confirmation
+await mountLogout(containerEl, { onSuccess: () => window.location.reload() })
+
+// Show switch-accounts modal (refresh bootstrap before reload in dev)
+await mountSwitchAccounts(el, {
+  onBeforeReload: import.meta.env.DEV
+    ? async () => { await fetch('/__dev/refresh-bootstrap', { method: 'POST' }).catch(() => {}) }
+    : undefined,
+  onClose: () => { /* unmount */ },
+})
+```
 
 ## Project structure
 
@@ -75,33 +148,6 @@ Example themes:
 | Purple | `168 85 247` | `192 132 252` | `147 51 234` |
 | Emerald | `16 185 129` | `52 211 153` | `5 150 105` |
 | Rose | `244 63 94` | `251 113 133` | `225 29 72` |
-
-## Auth
-
-Authentication is handled by the `seemynft-auth` bundle, lazy-loaded from `image.admin.solutions`. A random cache-busting slug is embedded in the URL so each page load fetches a fresh bundle.
-
-Three mount functions are available from `LazyAuth.jsx`:
-
-```js
-import { mountAuth, mountLogout, mountSwitchAccounts } from './LazyAuth'
-
-// Show login modal
-await mountAuth(containerEl, { onSuccess: () => window.location.reload() })
-
-// Show logout confirmation
-await mountLogout(containerEl, { onSuccess: () => window.location.reload() })
-
-// Show switch-accounts modal
-await mountSwitchAccounts(containerEl)
-```
-
-`LoginGate` wraps the entire app and prevents rendering until `window.__BOOTSTRAP__.USER_ACCESS_TOKEN` is present.
-
-## Dev proxy
-
-All `/api` requests are proxied to `https://seemynft.page`. Session cookies are captured from the proxy and forwarded automatically, so authenticated API calls work out of the box.
-
-After logging in via `/__dev/login`, the bootstrap cache is refreshed so `window.__BOOTSTRAP__` reflects the authenticated session without a full rebuild.
 
 ## Building for production
 
