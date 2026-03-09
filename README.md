@@ -77,15 +77,7 @@ What it provides automatically (dev only, no-op in prod builds):
 
 ### 2. Auth bundle — `src/LazyAuth.jsx`
 
-`LazyAuth.jsx` is copied directly into the repo. Do not modify the CDN URL pattern — the `Math.random()` slug is intentional cache-busting.
-
-In dev, `auth.js` is served from `/public/auth.js` (the built IIFE bundle from the `seemynft-auth` repo). Copy it once before running the dev server:
-
-```bash
-cp ../seemynft-auth/dist/auth.js public/auth.js
-```
-
-`public/auth.js` is gitignored — it's a build artifact. In production the bundle loads from the CDN.
+`LazyAuth.jsx` is copied directly into the repo. Do not modify the CDN URL — the `Math.random()` slug is intentional cache-busting that ensures users always get the latest version. The bundle always loads from the CDN (both dev and prod).
 
 Three mount functions are available:
 
@@ -202,10 +194,9 @@ Render login or logout/switch buttons based on auth state:
 ```
 src/
 ├── index.css       # Nexus dark theme + CSS custom properties
-├── main.jsx        # Entry point — wraps App in LoginGate
-├── App.jsx         # Blank app shell with header (logout / switch accounts)
-├── LazyAuth.jsx    # Lazy-loads the seemynft-auth bundle on demand
-└── LoginGate.jsx   # Auth guard — shows login modal until authenticated
+├── main.jsx        # Entry point
+├── App.jsx         # App shell with header (login / logout / switch accounts)
+└── LazyAuth.jsx    # Lazy-loads the seemynft-auth bundle on demand from CDN
 ```
 
 ## Environment variables

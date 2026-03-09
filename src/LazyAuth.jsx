@@ -9,9 +9,7 @@
  *   await mountSwitchAccounts(containerEl, { onBeforeReload: async () => { ... } })
  */
 
-const AUTH_BUNDLE_URL = import.meta.env.DEV
-  ? '/auth.js'
-  : `https://image.admin.solutions/seemynft-auth-package-as-java-script-file-${Math.random().toString(36).slice(2)}/58854df7-05b1-401d-a35e-4b7f1e407fc2/1e6d512e-f4ed-49dd-8715-3f1514a40491/003ea398-d606-4400-9308-ed142dcd5149`
+const AUTH_BUNDLE_URL = `https://image.admin.solutions/seemynft-auth-package-as-java-script-file-${Math.random().toString(36).slice(2)}/58854df7-05b1-401d-a35e-4b7f1e407fc2/1e6d512e-f4ed-49dd-8715-3f1514a40491/003ea398-d606-4400-9308-ed142dcd5149`
 
 let scriptLoaded = false
 let scriptLoading = false
