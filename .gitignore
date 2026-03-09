@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 
+# Auth bundle — built artifact from seemynft-auth, copied locally for dev
+# Copy from: ../seemynft-auth/dist/auth.js
+public/auth.js
+
 # Local env files (contain real credentials — never commit)
 .env
 .env.local
